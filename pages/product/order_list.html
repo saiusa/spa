@@ -65,81 +65,189 @@
 </div>
 
 <style>
-    .products-column {
-        min-width: 200px;
-        max-width: 300px;
-        word-wrap: break-word;
-        white-space: normal;
-    }
+/* General Container */
+.ui.segment {
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    padding: 25px;
+    margin: 20px auto;
+    max-width: 1200px;
+}
 
-    .products-column div {
-        margin: 0;
-    }
+/* Header */
+.ui.header {
+    color: #2c3e50;
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 25px;
+}
 
-    .products-column div > div {
-        line-height: 1.5;
-        overflow-wrap: break-word;
-    }
+.ui.header .sub.header {
+    color: #7f8c8d;
+    font-size: 14px;
+    margin-top: 5px;
+}
 
-    .image-column {
-        width: 70px;
-        text-align: center;
-        vertical-align: middle;
-    }
+/* Table */
+.ui.celled.table {
+    width: 100%;
+    border-collapse: collapse;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
 
-    .ui.celled.table {
-        table-layout: auto;
-        width: 100%;
-    }
+.ui.celled.table th,
+.ui.celled.table td {
+    padding: 12px 15px;
+    text-align: left;
+    font-size: 14px;
+    color: #34495e;
+    border-bottom: 1px solid #e0e0e0;
+}
 
+.ui.celled.table th {
+    background-color: #f5f5f5;
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+.ui.celled.table tr:hover {
+    background-color: #f9f9f9;
+    transition: background-color 0.3s ease;
+}
+
+.ui.celled.table .center.aligned {
+    text-align: center;
+    font-style: italic;
+    color: #7f8c8d;
+}
+
+/* Image Column */
+.image-column img {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Products Column */
+.products-column {
+    min-width: 200px;
+    max-width: 300px;
+    word-wrap: break-word;
+    white-space: normal;
+}
+
+.products-column div {
+    margin: 0;
+}
+
+.products-column div > div {
+    line-height: 1.5;
+    overflow-wrap: break-word;
+}
+
+/* Buttons */
+.ui.button {
+    background-color: #007b5e;
+    color: white;
+    border-radius: 8px;
+    padding: 10px 15px;
+    font-size: 14px;
+    font-weight: bold;
+    transition: background-color 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ui.button:hover {
+    background-color: #005f47;
+}
+
+.ui.button i {
+    margin: 0;
+}
+
+/* Message Box */
+.ui.message {
+    border-radius: 8px;
+    padding: 15px;
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.ui.message.positive {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.ui.message.negative {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.ui.message.info {
+    background-color: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
     .ui.celled.table th,
     .ui.celled.table td {
+        font-size: 12px;
         padding: 8px;
     }
 
-    @media (max-width: 768px) {
-        .products-column {
-            min-width: 150px;
-            max-width: 200px;
-        }
-
-        .image-column {
-            width: 60px;
-        }
-
-        .ui.celled.table th,
-        .ui.celled.table td {
-            font-size: 14px;
-            padding: 6px;
-        }
-
-        .image-column img {
-            width: 40px;
-            height: 40px;
-        }
+    .products-column {
+        min-width: 150px;
+        max-width: 200px;
     }
 
-    @media (max-width: 480px) {
-        .products-column {
-            min-width: 120px;
-            max-width: 150px;
-        }
-
-        .image-column {
-            width: 50px;
-        }
-
-        .ui.celled.table th,
-        .ui.celled.table td {
-            font-size: 12px;
-            padding: 4px;
-        }
-
-        .image-column img {
-            width: 30px;
-            height: 30px;
-        }
+    .image-column img {
+        width: 40px;
+        height: 40px;
     }
+
+    .ui.button {
+        font-size: 12px;
+        padding: 8px 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .ui.celled.table th,
+    .ui.celled.table td {
+        font-size: 10px;
+        padding: 6px;
+    }
+
+    .products-column {
+        min-width: 120px;
+        max-width: 150px;
+    }
+
+    .image-column img {
+        width: 30px;
+        height: 30px;
+    }
+
+    .ui.button {
+        font-size: 10px;
+        padding: 6px 10px;
+    }
+}
 </style>
 
 <script>
