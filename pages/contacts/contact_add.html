@@ -1,0 +1,105 @@
+<div></div>
+
+<div class="ui segment" x-data="addContact">
+
+    <!-- Display Loading Message -->
+    <div class="ui message" x-show="message" :class="messageType">
+        <p x-text="message"></p>
+    </div>
+
+    <h2 class="ui header">Add New Contact</h2>
+
+    <form class="ui form">
+        <div class="field inline">
+            <label>First Name</label>
+            <input type="text" x-model="contact.data.first_name" required>
+        </div>
+
+        <div class="field inline">
+            <label>Last Name</label>
+            <input type="text" x-model="contact.data.last_name" required>
+        </div>
+
+        <div class="field inline">
+            <label>Email</label>
+            <input type="email" x-model="contact.data.email" required>
+        </div>
+
+        <div class="field inline">
+            <label>Phone Number</label>
+            <input type="text" x-model="contact.data.phone_number" required>
+        </div>
+
+        <div class="field inline">
+            <label>Address</label>
+            <input type="text" x-model="contact.data.address" required>
+        </div>
+
+        <button class="ui primary button" @click.prevent="saveContact">Save</button>
+    </form>
+</div>
+
+<!-- when using x-model, it should typically be an object (or a property inside an object), 
+     especially when binding to form inputs. -->
+    
+
+<script>
+
+        
+    Alpine.data("addContact", () => ({
+        contact: Alpine.reactive( { 
+            data: {
+                first_name: "",
+                last_name: "",
+                email: "",
+                phone_number: "",
+                address: ""
+            }
+        },       
+        ),
+        message:'',
+        messageType:'',
+        saveContact() {
+
+            // Check if all required fields are filled
+             const isFormValid = Object.values(this.contact.data).every(value => {
+                // Convert value to string, then trim and check if it is not empty
+                return value.toString().trim() !== "";
+            });  
+
+            
+            if (!isFormValid) {
+                this.message = "Please fill in all required fields.";
+                this.messageType = "red"; // Red for error
+                setTimeout(() => { this.message = ""; }, 3000); // Clear message after 3 seconds
+                return; // Exit the function early
+            }
+            
+            fetch(`${Alpine.store("settings").apiBaseUrl}/contact/`, {
+                method: "POST",
+                headers: {"Content-Type": "application/json" },
+                body: JSON.stringify(this.contact.data)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Failed to add contact");
+                }
+                return response.json();
+            })
+            .then(data => {
+                this.message = "Contact added successfully!";
+                this.messageType = "green";  // Green for success
+                // Reset form after saving
+                this.contact.data = { first_name: "", last_name: "", email: "", phone_number: "", address: "" };
+                // Clear message after 3 seconds
+                setTimeout(() => { this.message = ""; }, 3000);
+            })
+            .catch(error => {
+                //console.error("Error adding contact:", error);
+                this.message = "Error occurred while adding contact.";
+                this.messageType = "red";  // Red for error
+            });
+        }
+        
+    }));
+</script>

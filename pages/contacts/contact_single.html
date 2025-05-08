@@ -1,0 +1,78 @@
+
+<div></div>
+<div x-data="contactManager" class="ui segment">
+    
+        <!-- Display Loading Message -->
+        <div class="ui message" x-show="message" :class="messageType">
+                <p x-text="message"></p>
+        </div>
+
+
+        <h1> Contact # <span x-text="id"></span> </h1>
+
+        <template x-if="contact.data.first_name">
+            <div>
+                <h3><strong>Name:</strong> <span x-text="contact.data.first_name + ' ' + contact.data.last_name"></span></h3>
+                <h3><strong>Email:</strong> <span x-text="contact.data.email"></span></h3>
+            
+                
+                            <button class="ui blue button" @click="editContact(contact.data.id)">
+                                <i class="edit icon"></i> Edit
+                            </button>
+                        
+                       
+                            <button class="ui red button" @click="deleteContact(contact.data.id)">
+                                <i class="trash icon"></i> Delete
+                            </button>
+                       
+                        
+                    
+               
+            </div>
+        </template>
+
+        <template x-if="!contact.data.first_name">
+            <p>No contact found for this ID.</p>
+        </template>
+</div>
+<script>
+    // Function Factory Pattern
+    // Alpine.data() to define reactive components:
+    Alpine.data("contactManager", () => ({
+        id: Alpine.store('GlobalVariable').queryParams.id,
+        contact: Alpine.reactive({ data: [] }),
+        message:'',
+        messageType:'',
+        editContact(id) {
+            navigateTo(`contacts/contact_edit?id=${id}`);
+        },
+        deleteContact(id) {
+            fetch(`${Alpine.store("settings").apiBaseUrl}/contacts/${id}/`, {
+                method: "DELETE", // Use DELETE to remove the contact
+                headers: { "Content-Type": "application/json" },
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Failed to delete contact");
+                }
+                return response.json(); // Assuming the API returns a response even for DELETE
+            })
+            .then(data => {
+                this.message = "Contact deleted successfully!";
+                this.messageType = "green"; // Green for success
+                setTimeout(() => { this.message = ""; }, 3000);
+                // Optionally, you can redirect or update the UI to reflect the deletion
+            })
+            .catch(error => {
+                this.message = "Error occurred while deleting contact.";
+                this.messageType = "red"; // Red for error
+            });
+        },
+
+        init() {
+           
+            this.contact.data = Alpine.store("GlobalFunctions").findContactById(this.id);
+            
+        }
+    }));
+</script>

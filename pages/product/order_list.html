@@ -1,0 +1,318 @@
+<div class="ui segment" x-data="orderListComponent">
+    <h2 class="ui header">
+        <i class="list icon"></i>
+        <div class="content">
+            Order List
+            <div class="sub header">View your order history</div>
+        </div>
+    </h2>
+    <div class="ui message" x-show="message" :class="messageType">
+        <i class="close icon" @click="message = ''"></i>
+        <div x-text="message"></div>
+    </div>
+    <div class="ui active dimmer" x-show="loading">
+        <div class="ui loader"></div>
+    </div>
+    <table class="ui celled table">
+        <thead>
+            <tr>
+                <th>Image</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Address</th>
+                <th>Payment Method</th>
+                <th>Total Amount</th>
+                <th>Products</th>
+                <th>Quantity</th>
+                <th>Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            <template x-for="(order, index) in orders" :key="index">
+                <tr>
+                    <td class="image-column">
+                        <img 
+                            :src="getImageUrl(order.receipt_image)" 
+                            alt="Receipt Image" 
+                            style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;"
+                            @error="this.src='https://via.placeholder.com/50'"
+                        >
+                    </td>
+                    <td x-text="order.name || 'N/A'"></td>
+                    <td x-text="order.email || 'N/A'"></td>
+                    <td x-text="order.address || 'N/A'"></td>
+                    <td x-text="order.payment_method || 'N/A'"></td>
+                    <td x-text="order.total_amount ? `₱${parseFloat(order.total_amount).toFixed(2)}` : 'N/A'"></td>
+                    <td class="products-column">
+                        <div>
+                            <template x-for="product in order.products">
+                                <div x-text="product.name"></div>
+                            </template>
+                        </div>
+                    </td>
+                    <td x-text="order.products.reduce((sum, product) => sum + (product.quantity || 0), 0)"></td>
+                    <td x-text="formatDate(order.created_at)"></td>
+                </tr>
+            </template>
+            <tr x-show="!loading && (!orders || orders.length === 0)">
+                <td colspan="9" class="center aligned">No orders found</td>
+            </tr>
+        </tbody>
+    </table>
+    <button class="ui button" @click="navigateTo('products/product_list')">
+        <i class="home icon"></i> Back to Product List
+    </button>
+</div>
+
+<style>
+    .products-column {
+        min-width: 200px;
+        max-width: 300px;
+        word-wrap: break-word;
+        white-space: normal;
+    }
+
+    .products-column div {
+        margin: 0;
+    }
+
+    .products-column div > div {
+        line-height: 1.5;
+        overflow-wrap: break-word;
+    }
+
+    .image-column {
+        width: 70px;
+        text-align: center;
+        vertical-align: middle;
+    }
+
+    .ui.celled.table {
+        table-layout: auto;
+        width: 100%;
+    }
+
+    .ui.celled.table th,
+    .ui.celled.table td {
+        padding: 8px;
+    }
+
+    @media (max-width: 768px) {
+        .products-column {
+            min-width: 150px;
+            max-width: 200px;
+        }
+
+        .image-column {
+            width: 60px;
+        }
+
+        .ui.celled.table th,
+        .ui.celled.table td {
+            font-size: 14px;
+            padding: 6px;
+        }
+
+        .image-column img {
+            width: 40px;
+            height: 40px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .products-column {
+            min-width: 120px;
+            max-width: 150px;
+        }
+
+        .image-column {
+            width: 50px;
+        }
+
+        .ui.celled.table th,
+        .ui.celled.table td {
+            font-size: 12px;
+            padding: 4px;
+        }
+
+        .image-column img {
+            width: 30px;
+            height: 30px;
+        }
+    }
+</style>
+
+<script>
+    if (!Alpine.store('api')) {
+        Alpine.store('api', {
+            fetch(url, options) {
+                return fetch(url, options);
+            }
+        });
+    }
+    
+    Alpine.data("orderListComponent", () => ({
+        orders: Alpine.reactive([]),
+        message: "",
+        messageType: "",
+        loading: true,
+        viewMode: 'table',
+        searchQuery: '',
+        sortField: 'created_at',
+        sortDirection: 'desc',
+    
+        init() {
+            console.log("Initializing orderListComponent");
+            this.fetchOrders();
+            window.addEventListener('payment-submitted', this.handlePaymentSubmitted.bind(this));
+        },
+    
+        destroy() {
+            console.log("Destroying orderListComponent");
+            window.removeEventListener('payment-submitted', this.handlePaymentSubmitted);
+        },
+    
+        handlePaymentSubmitted(event) {
+            console.log("Received payment-submitted event:", event.detail);
+            this.fetchOrders();
+            this.message = "New order added successfully!";
+            this.messageType = "positive";
+            setTimeout(() => { this.message = ""; }, 3000);
+        },
+    
+        async fetchOrders(retries = 3) {
+            this.loading = true;
+            this.message = "Loading orders...";
+            this.messageType = "info";
+            console.log("Fetching orders from API");
+    
+            while (retries > 0) {
+                try {
+                    const response = await Alpine.store('api').fetch('http://172.17.100.14:3342/usa2/api/payments/', {
+                        method: "GET",
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+    
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.detail || `HTTP error! Status: ${response.status}`);
+                    }
+    
+                    const data = await response.json();
+                    console.log("Raw orders data:", JSON.stringify(data, null, 2));
+    
+                    this.orders = Array.isArray(data) ? data : 
+                                 Array.isArray(data.results) ? data.results : [];
+                    
+                    this.orders = this.orders.map(order => ({
+                        name: order.name || 'N/A',
+                        email: order.email || 'N/A',
+                        address: order.address || 'N/A',
+                        payment_method: order.payment_method || 'N/A',
+                        total_amount: order.total_amount ? parseFloat(order.total_amount) : 0,
+                        products: Array.isArray(order.products) ? order.products : [],
+                        created_at: order.created_at || null,
+                        receipt_image: order.receipt_image || null
+                    }));
+    
+                    console.log("Processed orders:", JSON.stringify(this.orders, null, 2));
+    
+                    this.message = this.orders.length > 0 ? "" : "No orders found";
+                    this.messageType = "";
+                    this.loading = false;
+                    this.sortOrders();
+                    return;
+                } catch (error) {
+                    console.error("Error fetching orders:", error);
+                    retries--;
+                    if (retries === 0) {
+                        this.message = `Failed to load orders: ${error.message}`;
+                        this.messageType = "negative";
+                        this.loading = false;
+                        setTimeout(() => { this.message = ""; }, 5000);
+                    }
+                }
+            }
+        },
+    
+        formatDate(dateString) {
+            if (!dateString) return "N/A";
+            try {
+                const date = new Date(dateString);
+                if (isNaN(date.getTime())) return "Invalid Date";
+                return date.toLocaleString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            } catch (e) {
+                return "Invalid Date";
+            }
+        },
+    
+        getImageUrl(imagePath) {
+            if (!imagePath) {
+                console.log("No receipt_image provided, using placeholder");
+                return 'https://via.placeholder.com/150';
+            }
+            const isAbsoluteUrl = imagePath.startsWith('http://') || imagePath.startsWith('https://');
+            const url = isAbsoluteUrl ? imagePath : `http://172.17.100.14:3342/usa2${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
+            console.log(`Resolved image URL: ${url}`);
+            return url;
+        },
+    
+        calculateTotalOrders() {
+            const total = this.filteredOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
+            return total ? `₱${total.toFixed(2)}` : 'N/A';
+        },
+    
+        toggleView() {
+            this.viewMode = this.viewMode === 'table' ? 'cards' : 'table';
+        },
+    
+        sortBy(field) {
+            if (this.sortField === field) {
+                this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                this.sortField = field;
+                this.sortDirection = 'asc';
+            }
+            this.sortOrders();
+        },
+    
+        sortOrders() {
+            this.orders.sort((a, b) => {
+                let valueA = a[this.sortField] || '';
+                let valueB = b[this.sortField] || '';
+                
+                if (this.sortField === 'quantity') {
+                    valueA = a.products.reduce((sum, p) => sum + (p.quantity || 0), 0);
+                    valueB = b.products.reduce((sum, p) => sum + (p.quantity || 0), 0);
+                }
+    
+                if (typeof valueA === 'string') {
+                    valueA = valueA.toLowerCase();
+                    valueB = valueB.toLowerCase();
+                }
+    
+                if (valueA < valueB) return this.sortDirection === 'asc' ? -1 : 1;
+                if (valueA > valueB) return this.sortDirection === 'asc' ? 1 : -1;
+                return 0;
+            });
+        },
+    
+        get filteredOrders() {
+            if (!this.searchQuery) return this.orders;
+            const query = this.searchQuery.toLowerCase();
+            return this.orders.filter(order => 
+                order.name?.toLowerCase().includes(query) ||
+                order.address?.toLowerCase().includes(query) ||
+                order.payment_method?.toLowerCase().includes(query) ||
+                order.products.some(p => p.name?.toLowerCase().includes(query))
+            );
+        }
+    }));
+    
+</script>

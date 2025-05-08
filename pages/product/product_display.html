@@ -1,0 +1,607 @@
+<div class="ui segment" x-data="productListComponent">
+    <h2 class="ui header">
+        <i class="boxes icon"></i>
+        <div class="content">
+            Product List
+            <div class="sub header">View all products in your store</div>
+        </div>
+    </h2>
+    <button class="ui button" @click="toggleStockMode" x-text="isStockMode ? 'Cancel Stock Update' : 'Add Stock'"></button>
+    <div class="ui message" x-show="message" :class="messageType">
+        <i class="close icon" @click="message = ''"></i>
+        <div x-text="message"></div>
+    </div>
+    <div class="ui active dimmer" x-show="loading">
+        <div class="ui loader"></div>
+    </div>
+
+    <!-- Product List as Cards with Fixed Grid -->
+    <div class="product-grid">
+        <template x-for="(product, index) in displayedProducts" :key="product.id || index">
+            <div class="product-card">
+                <div class="product-image">
+                    <img :src="product.product_image || 'https://via.placeholder.com/150'" alt="Product Image" @error="console.log('Image failed to load for ' + product.name + ': ' + product.product_image)">
+                    <div class="out-of-stock-notice" x-show="product.stock <= 0">OUT OF STOCK</div>
+                </div>
+                <div class="product-details">
+                    <div class="product-name" x-text="product.name || 'Unknown'"></div>
+                    <div class="product-description" x-text="product.description || ''"></div>
+                    <div class="product-price" x-text="product.price ? `₱${Number(product.price).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'N/A'"></div>
+                    <div class="product-stock">
+                        STOCK: <span x-text="product.stock"></span>
+                        <div class="stock-input" x-show="isStockMode" x-transition>
+                            <input type="number" min="1" x-model="product.newStock" placeholder="Add stock" class="stock-input-field">
+                            <button class="ui tiny button" @click="updateStock(product)">Add</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="product-actions" x-show="!isStockMode">
+                    <button class="add-to-cart-btn" @click="addToCart(product)" :disabled="product.stock <= 0">
+                        Add to Cart
+                    </button>
+                    <button class="remove-btn" @click="removeProduct(product)">
+                        Remove
+                    </button>
+                </div>
+            </div>
+        </template>
+        <div class="no-products" x-show="!loading && (!displayedProducts || displayedProducts.length === 0)">
+            No products found
+        </div>
+    </div>
+</div>
+
+<style>
+.ui.segment {
+    width: calc(100% - 40px);   /* Adjust the number '40px' to suit the exact width needed */
+    max-width: none;            /* Remove max-width constraint */
+    margin: 0 0 0 40px;        /* Top: 0, Right: 0, Bottom: 0, Left: 40px */
+    padding: 20px;
+    box-sizing: border-box;
+    background: #fff;
+}
+
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 15px;
+    padding: 20px 0;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.product-card {
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #fff;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.product-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.product-image {
+    position: relative;
+    width: 100%;
+    height: 200px;
+    background: #f5f5f5;
+}
+
+.product-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.out-of-stock-notice {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-45deg);
+    background: transparent;
+    color: #ff0000;
+    font-size: 24px;
+    font-weight: bold;
+    padding: 5px 20px;
+    border: 3px solid #ff0000;
+    text-align: center;
+}
+
+.product-details {
+    padding: 15px;
+    flex-grow: 1;
+}
+
+.product-name {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.product-description {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 10px;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    display: block;
+    line-clamp: 2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.product-price {
+    font-size: 18px;
+    font-weight: bold;
+    color: #0000ff;
+    margin-bottom: 5px;
+}
+
+.product-stock {
+    font-size: 14px;
+    color: #000;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.stock-input {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.stock-input-field {
+    width: 60px;
+    padding: 2px 4px;
+    font-size: 12px;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    height: 24px;
+}
+
+.stock-input .ui.tiny.button {
+    padding: 4px 8px;
+    font-size: 12px;
+    line-height: 1;
+    height: 24px;
+}
+
+.product-actions {
+    padding: 10px 15px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    background: #f9f9f9;
+}
+
+.product-card:hover .product-actions {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.add-to-cart-btn {
+    background: #ff4d4d;
+    color: #fff;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.3s ease;
+}
+
+.add-to-cart-btn:hover {
+    background: #e04343;
+}
+
+.add-to-cart-btn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+.remove-btn {
+    background: #555;
+    color: #fff;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.3s ease;
+}
+
+.remove-btn:hover {
+    background: #444;
+}
+
+.no-products {
+    text-align: center;
+    padding: 20px;
+    color: #666;
+    font-size: 16px;
+    grid-column: 1 / -1;
+}
+
+@media (max-width: 1100px) {
+    .ui.segment {
+        width: 98vw;
+    }
+}
+
+@media (max-width: 768px) {
+    .ui.segment {
+        width: 100vw;
+        border-radius: 0;
+    }
+    .product-grid {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+    .product-image {
+        height: 150px;
+    }
+    .product-name {
+        font-size: 14px;
+    }
+    .product-description {
+        font-size: 12px;
+    }
+    .product-price {
+        font-size: 16px;
+    }
+    .product-stock {
+        font-size: 12px;
+    }
+    .add-to-cart-btn, .remove-btn {
+        font-size: 12px;
+        padding: 6px 12px;
+    }
+    .stock-input-field {
+        width: 50px;
+        font-size: 11px;
+        height: 22px;
+    }
+    .stock-input .ui.tiny.button {
+        padding: 3px 6px;
+        font-size: 11px;
+        height: 22px;
+    }
+}
+
+@media (max-width: 480px) {
+    .ui.segment {
+        width: 100vw;
+        border-radius: 0;
+    }
+    .product-grid {
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    }
+    .product-image {
+        height: 120px;
+    }
+    .stock-input-field {
+        width: 45px;
+        font-size: 10px;
+        height: 20px;
+    }
+    .stock-input .ui.tiny.button {
+        padding: 2px 5px;
+        font-size: 10px;
+        height: 20px;
+    }
+}
+</style>
+
+<script>
+    if (!Alpine.store('GlobalVariable')) {
+        Alpine.store('GlobalVariable', {
+            products: { results: [], count: 0 },
+            queryParams: Alpine.reactive({})
+        });
+    }
+    
+    if (!Alpine.store('api')) {
+        Alpine.store('api', {
+            fetch(url, options) {
+                return fetch(url, options);
+            }
+        });
+    }
+    
+    Alpine.data("productListComponent", () => ({
+        products: Alpine.store("GlobalVariable").products,
+        cart: Alpine.reactive(JSON.parse(localStorage.getItem('cart')) || []),
+        message: "",
+        messageType: "",
+        loading: false,
+        isStockMode: false,
+
+        init() {
+            this.fetchProducts();
+            window.addEventListener('product-added', this.handleProductAdded.bind(this));
+            window.addEventListener('stock-updated', this.handleStockUpdated.bind(this));
+            window.addEventListener('storage', this.handleStorageChange.bind(this));
+        },
+
+        destroy() {
+            window.removeEventListener('product-added', this.handleProductAdded);
+            window.removeEventListener('stock-updated', this.handleStockUpdated);
+            window.removeEventListener('storage', this.handleStorageChange);
+        },
+
+        toggleStockMode() {
+            this.isStockMode = !this.isStockMode;
+            if (!this.isStockMode) {
+                this.products.results.forEach(product => {
+                    product.newStock = null;
+                });
+            }
+        },
+
+        handleStorageChange(event) {
+            if (event.key === 'cart') {
+                this.cart = Alpine.reactive(JSON.parse(event.newValue) || []);
+            }
+        },
+
+        handleProductAdded(event) {
+            if (event.detail && event.detail.productData) {
+                this.fetchProducts();
+                this.message = "New product added!";
+                this.messageType = "green";
+                setTimeout(() => { this.message = ""; }, 3000);
+            }
+        },
+
+        handleStockUpdated(event) {
+            const { productId, stock } = event.detail;
+            const product = this.products.results.find(p => p.id === productId);
+            if (product) {
+                product.stock = stock;
+                this.products.results = [...this.products.results];
+            }
+        },
+
+        async fetchProducts(retries = 3) {
+            this.loading = true;
+            this.message = "Loading products...";
+            this.messageType = "blue";
+
+            const url = new URL('http://172.17.100.14:3342/usa2/api/products/');
+
+            while (retries > 0) {
+                try {
+                    const response = await Alpine.store('api').fetch(url.toString(), {
+                        method: "GET"
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    this.products.results = Array.isArray(data.results) ? data.results : (Array.isArray(data) ? data : []);
+                    this.products.count = data.count || this.products.results.length;
+
+                    Alpine.store("GlobalVariable").products.results = this.products.results;
+                    Alpine.store("GlobalVariable").products.count = this.products.count;
+
+                    this.message = this.products.results.length > 0 ? "" : "No products found";
+                    this.messageType = "";
+                    this.loading = false;
+                    return;
+                } catch (error) {
+                    console.error("Error fetching products:", error);
+                    retries--;
+                    if (retries === 0) {
+                        this.message = `Failed to load products: ${error.message}`;
+                        this.messageType = "red";
+                        this.loading = false;
+                        setTimeout(() => { this.message = ""; }, 5000);
+                    }
+                }
+            }
+        },
+
+        async addToCart(product, retries = 3) {
+    if (product.stock <= 0) {
+        this.message = `${product.name} is out of stock!`;
+        this.messageType = "red";
+        setTimeout(() => { this.message = ""; }, 3000);
+        return;
+    }
+
+    try {
+        const updatedStock = product.stock - 1;
+        const stockResponse = await Alpine.store('api').fetch(`http://172.17.100.14:3342/usa2/api/products/${product.id}/`, {
+            method: "PATCH",
+            body: JSON.stringify({ stock: updatedStock }),
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (!stockResponse.ok) {
+            const errorData = await stockResponse.json();
+            throw new Error(errorData.detail || "Failed to update stock");
+        }
+
+        const formData = new FormData();
+        formData.append('name', product.name);
+        formData.append('description', product.description);
+        formData.append('price', parseFloat(product.price).toFixed(2));
+        formData.append('stock', updatedStock);
+        formData.append('product_id', product.id);
+        // Skip image fetching and include the image URL directly
+        if (product.product_image) {
+            formData.append('product_image_url', product.product_image);
+        }
+
+        const cartResponse = await Alpine.store('api').fetch(`http://172.17.100.14:3342/usa2/api/cart-items/`, {
+            method: "POST",
+            body: formData
+        });
+
+        if (!cartResponse.ok) {
+            const errorData = await cartResponse.json();
+            throw new Error(errorData.detail || "Failed to add to cart database");
+        }
+
+        const cartData = await cartResponse.json();
+        console.log("Cart item added to database:", cartData);
+
+        product.stock = updatedStock;
+        this.products.results = [...this.products.results];
+
+        const cartItem = {
+            id: product.id,
+            name: product.name,
+            description: product.description,
+            price: product.price,
+            product_image: product.product_image,
+            stock: product.stock,
+            quantity: 1
+        };
+
+        const existingItem = this.cart.find(item => item.id === product.id);
+        if (existingItem) {
+            if (product.stock < existingItem.quantity + 1) {
+                this.message = `${product.name} has insufficient stock!`;
+                this.messageType = "red";
+                setTimeout(() => { this.message = ""; }, 3000);
+                return;
+            }
+            existingItem.quantity += 1;
+        } else {
+            this.cart.push(cartItem);
+        }
+        localStorage.setItem('cart', JSON.stringify(this.cart));
+
+        const stockUpdatedEvent = new CustomEvent('stock-updated', {
+            detail: { productId: product.id, stock: updatedStock },
+            bubbles: true
+        });
+        window.dispatchEvent(stockUpdatedEvent);
+
+        this.message = `${product.name} added to cart!`;
+        this.messageType = "green";
+        setTimeout(() => { this.message = ""; }, 3000);
+    } catch (error) {
+        console.error("Error adding to cart:", error);
+        this.message = `Failed to add ${product.name} to cart: ${error.message}`;
+        this.messageType = "red";
+        setTimeout(() => { this.message = ""; }, 5000);
+    }
+},
+
+        async updateStock(product, retries = 3) {
+            const newStock = parseInt(product.newStock);
+            if (!newStock || newStock < 1) {
+                this.message = `Please enter a valid stock quantity for ${product.name}`;
+                this.messageType = "red";
+                setTimeout(() => { this.message = ""; }, 3000);
+                return;
+            }
+
+            while (retries > 0) {
+                try {
+                    const updatedStock = product.stock + newStock;
+                    const response = await Alpine.store('api').fetch(`http://172.17.100.14:3342/usa2/api/products/${product.id}/`, {
+                        method: "PATCH",
+                        body: JSON.stringify({ stock: updatedStock }),
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.detail || "Failed to update stock");
+                    }
+
+                    product.stock = updatedStock;
+                    product.newStock = null;
+                    this.products.results = [...this.products.results];
+
+                    const stockUpdatedEvent = new CustomEvent('stock-updated', {
+                        detail: { productId: product.id, stock: updatedStock },
+                        bubbles: true
+                    });
+                    window.dispatchEvent(stockUpdatedEvent);
+
+                    this.message = `Added stock to ${product.name}!`;
+                    this.messageType = "green";
+                    setTimeout(() => { this.message = ""; }, 3000);
+                    return;
+                } catch (error) {
+                    console.error("Error updating stock:", error);
+                    retries--;
+                    if (retries === 0) {
+                        this.message = `Failed to update stock for ${product.name}: ${error.message}`;
+                        this.messageType = "red";
+                        setTimeout(() => { this.message = ""; }, 5000);
+                    }
+                }
+            }
+        },
+
+        async removeProduct(product, retries = 3) {
+            if (!confirm(`Are you sure you want to remove ${product.name}?`)) {
+                return;
+            }
+
+            while (retries > 0) {
+                try {
+                    const response = await Alpine.store('api').fetch(`http://172.17.100.14:3342/usa2/api/products/${product.id}/`, {
+                        method: "DELETE",
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.detail || "Failed to remove product");
+                    }
+
+                    this.products.results = this.products.results.filter(p => p.id !== product.id);
+                    this.products.count = this.products.results.length;
+                    Alpine.store("GlobalVariable").products.results = this.products.results;
+                    Alpine.store("GlobalVariable").products.count = this.products.count;
+
+                    this.cart = this.cart.filter(item => item.id !== product.id);
+                    localStorage.setItem('cart', JSON.stringify(this.cart));
+
+                    this.message = `${product.name} removed successfully!`;
+                    this.messageType = "green";
+                    setTimeout(() => { this.message = ""; }, 3000);
+                    return;
+                } catch (error) {
+                    console.error("Error removing product:", error);
+                    retries--;
+                    if (retries === 0) {
+                        this.message = `Failed to remove ${product.name}: ${error.message}`;
+                        this.messageType = "red";
+                        setTimeout(() => { this.message = ""; }, 5000);
+                    }
+                }
+            }
+        },
+
+        get displayedProducts() {
+            return this.products.results || [];
+        },
+
+        get cartItemCount() {
+            return this.cart.reduce((total, item) => total + (item.quantity || 0), 0);
+        }
+    }));
+</script>

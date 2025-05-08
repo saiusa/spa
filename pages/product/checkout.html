@@ -1,0 +1,284 @@
+<div class="ui segment" x-data="checkoutComponent">
+    <h2 class="ui header"></h2>
+    <div class="ui message" x-show="message" :class="messageType">
+        <i class="close icon" @click="message = ''"></i>
+        <div x-text="message"></div>
+    </div>
+    <div class="cart-grid">
+        <template x-for="(item, index) in cartItems" :key="index">
+            <div class="cart-card">
+                <div class="cart-image">
+                    <img :src="item.product_image || 'https://via.placeholder.com/150'" alt="Product Image" @error="console.log('Checkout image failed to load for ' + item.name + ': ' + item.product_image)">
+                </div>
+                <div class="cart-details">
+                    <div class="cart-name" x-text="item.name || 'Unknown'"></div>
+                    <div class="cart-description" x-text="item.description || 'Product description goes here.'"></div>
+                    <div class="cart-price" x-text="`Price: ₱${parseFloat(item.price).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`"></div>
+                    <div class="cart-quantity">
+                        Quantity: <span x-text="item.quantity || '0'"></span>
+                    </div>
+                    <div class="cart-total">
+                        Total: <span x-text="`₱${(item.quantity * item.price).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`"></span>
+                    </div>
+                </div>
+            </div>
+        </template>
+        <div class="no-items" x-show="!cartItems || cartItems.length === 0">
+            Your cart is empty
+        </div>
+    </div>
+    <div class="button-group" x-show="cartItems && cartItems.length > 0">
+        <div class="total-price">
+            <strong>Total: </strong>
+            <span x-text="`₱${totalPrice}`"></span>
+        </div>
+        <div class="button-container">
+            <button class="ui primary button" @click="placeOrder" :disabled="!cartItems || cartItems.length === 0">
+                <i class="credit card icon"></i> Place Order
+            </button>
+            <button class="ui button" @click="navigateTo('products/cart')">
+                <i class="arrow left icon"></i> Back to Cart
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+.ui.segment {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.cart-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    padding: 20px 0;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.cart-card {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    max-width: 800px;
+    min-height: 200px;
+    margin: 0 auto;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    background: #fff;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.cart-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.cart-image {
+    position: relative;
+    width: 200px;
+    height: 150px;
+    background: #f5f5f5;
+    flex-shrink: 0;
+}
+
+.cart-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.out-of-stock-notice {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-45deg);
+    background: transparent;
+    color: #ff0000;
+    font-size: 18px;
+    font-weight: bold;
+    padding: 5px 15px;
+    border: 3px solid #ff0000;
+    text-align: center;
+}
+
+.cart-details {
+    padding: 15px;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.cart-name {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.cart-description {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-clamp: 2;
+    box-orient: vertical;
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 10px;
+}
+
+.cart-price {
+    font-size: 18px;
+    font-weight: bold;
+    color: #0000ff;
+    margin-bottom: 10px;
+}
+
+.cart-quantity {
+    font-size: 14px;
+    color: #000;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.cart-total {
+    font-size: 16px;
+    font-weight: bold;
+    color: #000;
+}
+
+.button-group {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    max-width: 800px;
+    margin: 20px auto;
+    gap: 20px;
+}
+
+.total-price {
+    font-size: 16px;
+    font-weight: bold;
+    color: #000;
+}
+
+.button-container {
+    display: flex;
+    gap: 10px;
+}
+
+.ui.primary.button,
+.ui.button {
+    padding: 10px 20px;
+    font-size: 14px;
+}
+
+.ui.primary.button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.no-items {
+    text-align: center;
+    padding: 20px;
+    color: #666;
+    font-size: 16px;
+}
+
+@media (max-width: 768px) {
+    .cart-card {
+        flex-direction: column;
+        max-width: 100%;
+        min-height: 300px;
+    }
+
+    .cart-image {
+        width: 100%;
+        height: 150px;
+    }
+
+    .button-group {
+        flex-direction: column;
+        align-items: flex-end;
+    }
+
+    .total-price {
+        align-self: flex-start;
+        margin-bottom: 10px;
+    }
+
+    .button-container {
+        width: 100%;
+        justify-content: flex-end;
+    }
+}
+</style>
+
+<script>
+Alpine.data("checkoutComponent", () => ({
+    cartItems: Alpine.reactive(JSON.parse(localStorage.getItem('checkoutItems')) || []),
+    message: "",
+    messageType: "",
+
+    init() {
+        console.log('Checkout items loaded:', this.cartItems);
+        window.addEventListener('storage', this.handleStorageChange.bind(this));
+        if (!this.cartItems || this.cartItems.length === 0) {
+            this.message = "No items selected for checkout. Redirecting to cart...";
+            this.messageType = "red";
+            setTimeout(() => {
+                this.message = "";
+                navigateTo('products/cart');
+            }, 2500);
+        }
+    },
+
+    destroy() {
+        window.removeEventListener('storage', this.handleStorageChange);
+    },
+
+    handleStorageChange(event) {
+        if (event.key === 'checkoutItems') {
+            this.cartItems = Alpine.reactive(JSON.parse(event.newValue) || []);
+            console.log('Checkout items updated from storage:', this.cartItems);
+            if (!this.cartItems || this.cartItems.length === 0) {
+                this.message = "Checkout items cleared. Redirecting to cart...";
+                this.messageType = "red";
+                setTimeout(() => {
+                    this.message = "";
+                    navigateTo('products/cart');
+                }, 3000);
+            }
+        }
+    },
+
+    get totalPrice() {
+        return this.cartItems
+            .reduce((total, item) => total + (item.quantity * item.price), 0)
+            .toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    },
+
+    placeOrder() {
+        if (!this.cartItems || this.cartItems.length === 0) {   
+            this.message = "Your cart is empty!";
+            this.messageType = "red";
+            setTimeout(() => { this.message = ""; }, 3000);
+            return;
+        }
+
+        this.message = "Proceeding to payment...";
+        this.messageType = "green";
+        setTimeout(() => {
+            this.message = "";
+            navigateTo('products/payment');
+        }, 2000);
+    }
+}));
+</script>

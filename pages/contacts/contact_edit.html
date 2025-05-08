@@ -1,0 +1,111 @@
+<div></div>
+<div class="ui segment" x-data="contactList" >
+
+      <!-- Display Loading Message -->
+     <div class="ui message" x-show="message" :class="messageType">
+        <p x-text="message"></p>
+    </div>
+
+    <h2 class="ui header">Edit Contact # <span x-text="contact.data.id"></span></h2>
+
+    <form class="ui form" >
+        <div class="field inline">
+            <label>ID</label>
+            <input type="text" x-model="contact.data.id" disabled>
+        </div>
+
+        <div class="field inline">
+            <label>First Name</label>
+            <input type="text" x-model="contact.data.first_name">
+        </div>
+
+        <div class="field inline">
+            <label>Last Name</label>
+            <input type="text" x-model="contact.data.last_name">
+        </div>
+
+        <div class="field inline">
+            <label>Email</label>
+            <input type="email" x-model="contact.data.email">
+        </div>
+
+        <div class="field inline">
+            <label>Phone Number</label>
+            <input type="text" x-model="contact.data.phone_number">
+        </div>
+
+        <div class="field inline">
+            <label>Address</label>
+            <input type="text" x-model="contact.data.address">
+        </div>
+
+        <button class="ui primary button" @click.prevent="saveChanges">Save</button>
+    </form>
+
+</div>
+
+<script>
+    // Function Factory Pattern
+    // Alpine.data() to define reactive components:
+    Alpine.data("contactList", () => ({
+        contact: Alpine.reactive({
+            data: {
+              first_name: "",
+              last_name: "",
+              email: "",
+              phone_number: "",
+              address: ""
+            }
+          }), // Reactive object for contact data
+        id: Alpine.store('GlobalVariable').queryParams.id, // Get ID from global store
+        message:'',
+        messageType:'',
+        saveChanges() {
+
+            
+            // Check if all required fields are filled
+            const isFormValid = Object.values(this.contact.data).every(value => {
+                // Convert value to string, then trim and check if it is not empty
+                return value.toString().trim() !== "";
+            });  
+
+
+            if (!isFormValid) {
+                this.message = "Please fill in all required fields.";
+                this.messageType = "red"; // Red for error
+                setTimeout(() => { this.message = ""; }, 3000); // Clear message after 3 seconds
+                return; // Exit the function early
+            }
+           
+            console.log("base :", `${Alpine.store("settings").apiBaseUrl}/contacts/${this.contact.data.id}/`);
+            console.log("body :" ,JSON.stringify(this.contact.data));
+
+            fetch(`${Alpine.store("settings").apiBaseUrl}/contacts/${this.contact.data.id}/`, {
+                method: "PUT", // Use PUT to update existing contact
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(this.contact.data)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Failed to update contact");
+                }
+                return response.json();
+            })
+            .then(data => {
+                this.message = "Contact updated successfully!";
+                this.messageType = "green"; // Green for success
+                setTimeout(() => { this.message = ""; }, 3000);
+            })
+            .catch(error => {
+                this.message = "Error occurred while updating contact.";
+                this.messageType = "red"; // Red for error
+            });
+        },        
+        init() {
+            this.contact.data = Alpine.store("GlobalFunctions").findContactById(this.id);
+            // Uncomment if you need to watch for ID changes
+            // this.$watch("id", () => this.findContactById()); 
+        }
+    }));
+</script>
+
